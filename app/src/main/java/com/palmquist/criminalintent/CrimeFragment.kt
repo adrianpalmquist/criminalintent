@@ -1,5 +1,6 @@
 package com.palmquist.criminalintent
 
+import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.pm.ResolveInfo
@@ -162,6 +163,12 @@ class CrimeFragment : Fragment(), DatePickerFragment.Callbacks {
         crimeDetailViewModel.saveCrime(crime)
     }
 
+    override fun onDetach() {
+        super.onDetach()
+        requireActivity().revokeUriPermission(photoUri,
+        Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+    }
+
     override fun onDateSelected(date: Date) {
         crime.date = date
         updateUI()
@@ -173,6 +180,16 @@ class CrimeFragment : Fragment(), DatePickerFragment.Callbacks {
         solvedCheckBox.apply {
             isChecked = crime.isSolved
             jumpDrawablesToCurrentState()
+        }
+        updatePhotoView()
+    }
+
+    private fun updatePhotoView() {
+        if (photoFile.exists()) {
+            val bitmap = getScaledBitmap(photoFile.path, requireActivity())
+            photoView.setImageBitmap(bitmap)
+        } else {
+            photoView.setImageDrawable(null)
         }
     }
 
@@ -192,6 +209,17 @@ class CrimeFragment : Fragment(), DatePickerFragment.Callbacks {
 
         return getString(R.string.crime_report,
             crime.title, dateString, solvedString, suspect)
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        when {
+            resultCode != Activity.RESULT_OK -> return
+            requestCode == REQUEST_PHOTO -> {
+                requireActivity().revokeUriPermission(photoUri,
+                    Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+                updatePhotoView()
+            }
+        }
     }
 
     companion object {
